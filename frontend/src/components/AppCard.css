@@ -1,0 +1,36 @@
+.app-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.app-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.app-dot--up {
+  background: var(--ok-color);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok-color) 20%, transparent);
+}
+
+.app-dot--down {
+  background: var(--critical-color);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--critical-color) 20%, transparent);
+}
+
+.app-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.app-meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}

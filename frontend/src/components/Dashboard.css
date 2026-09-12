@@ -1,0 +1,68 @@
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+header {
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  font-size: 1.6rem;
+  margin: 0 0 0.4rem;
+  color: var(--text-primary);
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot--up {
+  background: var(--ok-color);
+}
+
+.dot--down {
+  background: var(--critical-color);
+}
+
+.updated-at {
+  margin-left: auto;
+}
+
+.gauges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1.25rem;
+}
+
+.apps-section {
+  margin-top: 2.5rem;
+}
+
+.apps-section h2 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.apps-placeholder {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
