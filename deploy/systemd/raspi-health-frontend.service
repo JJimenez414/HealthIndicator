@@ -1,0 +1,17 @@
+[Unit]
+Description=Raspi Health Frontend (static dashboard)
+After=network.target
+
+[Service]
+User=jjimenez
+# Full path required: this is an nvm-managed Node install (per `which serve`),
+# not on the PATH a system-level service starts with. If you ever run
+# `nvm install`/`nvm use` to switch Node versions, this path will need
+# updating to match the new version directory.
+ExecStart=/home/jjimenez/.nvm/versions/node/v24.14.0/bin/serve -s /home/jjimenez/Documents/health-check/frontend-dist -l 4173
+WorkingDirectory=/home/jjimenez/Documents/health-check
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -11,6 +11,7 @@ const POLL_INTERVAL_MS = 600000;
 export function Dashboard() {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [apps, setApps] = useState<AppStatus[] | null>(null);
+  const [appsError, setAppsError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -30,9 +31,13 @@ export function Dashboard() {
 
       try {
         const nextApps = await fetchAppStatuses();
-        if (!cancelled) setApps(nextApps);
-      } catch {
-        // /api/apps isn't built yet — leave apps as null so the UI shows a placeholder.
+        if (cancelled) return;
+        setApps(nextApps);
+        setAppsError(null);
+      } catch (err) {
+        if (!cancelled) {
+          setAppsError(err instanceof Error ? err.message : 'Failed to load app statuses');
+        }
       }
     }
 
@@ -92,7 +97,12 @@ export function Dashboard() {
       <section className="apps-section">
         <h2>Apps</h2>
         <div className="apps-grid">
-          {apps === null && <p className="apps-placeholder">Waiting for /api/apps…</p>}
+          {apps === null && appsError === null && (
+            <p className="apps-placeholder">Waiting for /api/apps…</p>
+          )}
+          {appsError !== null && (
+            <p className="apps-error">Couldn't check app statuses: {appsError}</p>
+          )}
           {apps?.map((app) => (
             <AppCard key={app.name} app={app} />
           ))}

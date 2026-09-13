@@ -1,0 +1,13 @@
+[Unit]
+Description=Raspi Health Backend (Spring Boot)
+After=network.target
+
+[Service]
+User=jjimenez
+ExecStart=/usr/bin/java -jar /home/jjimenez/Documents/health-check/raspi-health-service.jar
+WorkingDirectory=/home/jjimenez/Documents/health-check
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

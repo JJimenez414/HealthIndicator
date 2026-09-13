@@ -66,3 +66,8 @@ header h1 {
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
+
+.apps-error {
+  color: var(--critical-color);
+  font-size: 0.9rem;
+}
