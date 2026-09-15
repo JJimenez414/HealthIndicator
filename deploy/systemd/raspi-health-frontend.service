@@ -4,10 +4,12 @@ After=network.target
 
 [Service]
 User=jjimenez
-# Full path required: this is an nvm-managed Node install (per `which serve`),
-# not on the PATH a system-level service starts with. If you ever run
-# `nvm install`/`nvm use` to switch Node versions, this path will need
-# updating to match the new version directory.
+# `serve` is a Node script (#!/usr/bin/env node), so even with a full path to
+# `serve` itself, its shebang still needs `node` resolvable via PATH at
+# runtime — systemd's default PATH doesn't include nvm's directory, so it
+# must be added explicitly here. If you switch Node versions via nvm, update
+# both this and the ExecStart path below.
+Environment=PATH=/home/jjimenez/.nvm/versions/node/v24.14.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=/home/jjimenez/.nvm/versions/node/v24.14.0/bin/serve -s /home/jjimenez/Documents/health-check/frontend-dist -l 5174
 WorkingDirectory=/home/jjimenez/Documents/health-check
 Restart=on-failure
