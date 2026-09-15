@@ -1,0 +1,89 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Build jar
+        working-directory: backend
+        run: ./mvnw -B clean package -DskipTests
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/*.jar
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ vars.PI_API_BASE_URL }}
+        run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+  deploy:
+    needs: [build-backend, build-frontend]
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: dist/backend
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/frontend
+
+      - name: Ensure app directory exists
+        run: mkdir -p ~/Documents/health-check
+
+      - name: Install systemd unit files
+        run: sudo cp deploy/systemd/*.service /etc/systemd/system/
+
+      - name: Install backend jar
+        run: cp dist/backend/*.jar ~/Documents/health-check/raspi-health-service.jar
+
+      - name: Install frontend build
+        run: |
+          rm -rf ~/Documents/health-check/frontend-dist
+          cp -r dist/frontend ~/Documents/health-check/frontend-dist
+
+      - name: Reload and restart services
+        run: |
+          sudo systemctl daemon-reload
+          sudo systemctl restart raspi-health-backend.service raspi-health-frontend.service

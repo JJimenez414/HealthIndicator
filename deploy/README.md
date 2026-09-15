@@ -4,13 +4,19 @@ These steps prep the Pi so `.github/workflows/deploy.yml` can push builds to it 
 every push to `main`. Run them once per Pi.
 
 The `deploy` job runs directly on the Pi itself, via a self-hosted GitHub Actions
-runner (already installed). Only `build-backend` and `build-frontend` run on
+runner (already installed). `build-backend` and `build-frontend` run on
 GitHub's cloud runners.
 
-The two health-check services are registered as **system-level** systemd units
-(in `/etc/systemd/system/`), matching how your other apps on this Pi are set
-up — consistent with the passwordless-sudo pattern your other pipelines
-already use.
+**Architecture:** the frontend and backend are each tunneled separately —
+`health.jmzfinance.com` → the frontend, and a second Cloudflare Tunnel mapping
+→ the backend (`localhost:8181`). Since the browser now makes a genuine
+cross-origin request from the frontend's domain to the backend's domain,
+both CORS (`WebConfig.java`) and `VITE_API_BASE_URL` (baked into the frontend
+build) are required — not optional safety nets.
+
+The two health-check services are registered as **system-level** systemd
+units (in `/etc/systemd/system/`), matching how your other apps on this Pi
+are set up.
 
 ## 1. Install Java 17 and Node's `serve` package
 
@@ -23,8 +29,7 @@ npm install -g serve   # requires Node/npm already on the Pi; no sudo needed
 
 Run `which serve` afterward and check the path matches what's in
 `deploy/systemd/raspi-health-frontend.service`'s `ExecStart` — update the unit
-file if it differs (npm global installs without sudo often land somewhere a
-system-level service can't find via its default `PATH`).
+file if it differs.
 
 ## 2. Create the app directory
 
@@ -52,21 +57,40 @@ jjimenez ALL=(ALL) NOPASSWD: /usr/bin/cp * /etc/systemd/system/*, /usr/bin/syste
 (Adjust the username if your self-hosted runner runs as a different user than
 `jjimenez`.)
 
-## 4. Add a GitHub Actions repo variable
+## 4. Create a second Cloudflare Tunnel mapping for the backend
+
+Add an ingress rule (alongside the existing frontend one) routing a domain
+to the backend directly, e.g.:
+
+```yaml
+ingress:
+  - hostname: health.jmzfinance.com
+    service: http://localhost:5174
+  - hostname: api.jmzfinance.com
+    service: http://localhost:8181
+  - service: http_status:404
+```
+
+(Substitute whatever hostname you actually create — `api.jmzfinance.com` is
+just an example.) Restart the tunnel after editing (`sudo systemctl restart
+cloudflared`, or whatever the service is named on your setup).
+
+## 5. Add a GitHub Actions repo variable
 
 In the repo's Settings -> Secrets and variables -> Actions -> Variables:
 
-- **Variable** `PI_API_BASE_URL` — e.g. `http://raspberrypi.local:8080`, baked
-  into the frontend build (which happens on GitHub's cloud runner) so it
-  knows where to find the backend once deployed
+- **Variable** `PI_API_BASE_URL` — the backend's new public tunnel address
+  (e.g. `https://api.jmzfinance.com`), baked into the frontend build so it
+  knows where to send API requests
 
-## 5. Update backend CORS to allow the Pi's frontend origin
+## 6. Backend CORS
 
-In `backend/.../config/WebConfig.java`, add the Pi's real frontend address
-(port 4173, per the `serve` unit) to `allowedOrigins(...)`, alongside
-`localhost:5173` for local dev.
+Already set in `backend/.../config/WebConfig.java`:
+`allowedOrigins("http://localhost:5173", "https://health.jmzfinance.com")` —
+this is genuinely required now (real cross-origin request), not just a
+safety net. Update it if the frontend's domain ever changes.
 
-## 6. One-time enable, after the first successful deploy
+## 7. One-time enable, after the first successful deploy
 
 Once the first CI run has placed the unit files in `/etc/systemd/system/`,
 enable them so they also start automatically on boot (CI's `restart` starts
@@ -88,4 +112,5 @@ Every push to `main` triggers `.github/workflows/deploy.yml`, which:
    `/etc/systemd/system/` (via the scoped passwordless-sudo rule)
 4. Runs `sudo systemctl restart` for both services
 
-Ports: backend on `8080`, frontend on `4173` (from the `serve` unit's `-l` flag).
+Ports: backend on `8181`, frontend on `5174` (from the `serve` unit's `-l`
+flag) — each mapped to its own public hostname via Cloudflare Tunnel.
